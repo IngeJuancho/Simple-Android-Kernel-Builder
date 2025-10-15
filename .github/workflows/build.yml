@@ -154,13 +154,14 @@ jobs:
           # Parches de código para errores conocidos del kernel Tejas
           echo "Patching kernel/sched/fair.c..."
           
-          # Comentar línea con FULL_THROTTLE_BOOST (línea ~7829)
-          sed -i 's/sched_boost() != FULL_THROTTLE_BOOST/\/\/ sched_boost() != FULL_THROTTLE_BOOST/g' kernel/sched/fair.c || true
+          # Comentar FULL_THROTTLE_BOOST - usa una estrategia más robusta
+          sed -i 's/!= FULL_THROTTLE_BOOST/!= 0 \/\/ FULL_THROTTLE_BOOST/g' kernel/sched/fair.c || true
           
-          # Comentar llamada a trace_sched_load_balance_skip_tasks (línea ~9427)
-          sed -i 's/trace_sched_load_balance_skip_tasks(/\/\/ trace_sched_load_balance_skip_tasks(/g' kernel/sched/fair.c || true
+          # Comentar llamada completa a trace_sched_load_balance_skip_tasks
+          # Busca la línea y la comenta completa (multiline safe)
+          sed -i '/trace_sched_load_balance_skip_tasks/,/);/s/^/\/\/ /' kernel/sched/fair.c || true
           
-          # Comentar llamada a mark_reserved (línea ~11225)
+          # Comentar llamada a mark_reserved
           sed -i 's/mark_reserved(this_cpu);/\/\/ mark_reserved(this_cpu);/g' kernel/sched/fair.c || true
           
           # Driver patch si existe
@@ -168,7 +169,7 @@ jobs:
             sed -i '1i#include <linux/irq.h>' drivers/media/rc/msm-geni-ir.c
           fi
           
-          echo "Patches applied"
+          echo "Patches applied successfully"
 
       - name: "👍 Make defconfig"
         working-directory: ./${{ env.kernelDir }}/${{ env.kernelName }}
