@@ -36,14 +36,11 @@ jobs:
         repos: ${{ fromJSON(needs.Set-repos.outputs.repos) }}
     env:
       kernelDir: ${{ matrix.repos.kernelSource.name }}_${{ matrix.repos.kernelSource.device }}
-
       kernelName: ${{ matrix.repos.kernelSource.name }}
       kernelRepo: ${{ matrix.repos.kernelSource.repo }}
       kernelBranch: ${{ matrix.repos.kernelSource.branch }}
       kernelDevice: ${{ matrix.repos.kernelSource.device }}
-
       DEFCONFIG_NAME: ${{ matrix.repos.kernelSource.device }}_defconfig
-
       withKernelSU: ${{ matrix.repos.withKernelSU }}
     steps:
       - name: "✨ Create working dir"
@@ -65,26 +62,24 @@ jobs:
           toolchains: "${{ toJSON(matrix.repos.toolchains) }}"
         run: |
           toolchains_num="$(echo $toolchains | jq 'length')"
-          echo $toolchains_num
+          echo "Downloading $toolchains_num toolchains..."
           for ((i=0;i<toolchains_num;i++)); do
             name=$(echo $toolchains | jq -r ".[$i].name")
             repo=$(echo $toolchains | jq -r ".[$i].repo")
             branch=$(echo $toolchains | jq -r ".[$i].branch")
+            echo "Cloning: $name from $repo (branch: $branch)"
             git clone --recursive --branch $branch $repo $name --depth=1
             echo "$(pwd)/$name/" >> $GITHUB_PATH
             echo "$(pwd)/$name/bin" >> $GITHUB_PATH
           done
-
-          echo "PATH Variable: $PATH"
+          echo "Toolchains ready"
 
       - name: "😎 Set args"
         id: generate-args
         working-directory: ./${{ env.kernelDir }}
         env:
           params: "${{ toJSON(matrix.repos.params) }}"
-          THREAD: $(nproc --all)
         run: |
-          echo "PATH Variable: $PATH"
           ARCH=$(echo $params | jq -r ".ARCH")
           CROSS_COMPILE=$(echo $params | jq -r ".CROSS_COMPILE")
           CROSS_COMPILE_COMPAT=$(echo $params | jq -r ".CROSS_COMPILE_COMPAT")
@@ -120,6 +115,15 @@ jobs:
           fi
           echo "args=$args" >> $GITHUB_OUTPUT
 
+      - name: "🔧 Clean and prep kernel"
+        working-directory: ./${{ env.kernelDir }}/${{ env.kernelName }}
+        env:
+          args: ${{ steps.generate-args.outputs.args }}
+        run: |
+          echo "Cleaning kernel source..."
+          make ${{ env.args }} clean 2>/dev/null || true
+          make ${{ env.args }} mrproper 2>/dev/null || true
+
       - name: "😋 Update KernelSU"
         working-directory: ./${{ env.kernelDir }}/${{ env.kernelName }}
         if: ${{ env.withKernelSU == 'true' }}
@@ -137,31 +141,59 @@ jobs:
           echo -e "\nCONFIG_HAVE_KPROBES=y" >> ./arch/${{ env.ARCH }}/configs/${{ env.DEFCONFIG_NAME }}
           echo -e "\nCONFIG_KPROBE_EVENTS=y" >> ./arch/${{ env.ARCH }}/configs/${{ env.DEFCONFIG_NAME }}
 
-          cat ./arch/${{ env.ARCH }}/configs/${{ env.DEFCONFIG_NAME }}
-
       - name: "🩹 Aplicar Parches al Código y Configuración"
         working-directory: ./${{ env.kernelDir }}/${{ env.kernelName }}
         run: |
+          echo "Applying kernel patches..."
+          
+          # Configuración
           echo "CONFIG_NR_CPUS=8" >> arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
           echo "CONFIG_NO_HZ_FULL=y" >> arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
           sed -i 's/CONFIG_SCHED_DEBUG=y/# CONFIG_SCHED_DEBUG is not set/g' arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
-          sed -i '1i#include <linux/irq.h>' drivers/media/rc/msm-geni-ir.c
+          
+          # Parches de código para errores conocidos del kernel Tejas
+          echo "Patching kernel/sched/fair.c..."
+          
+          # Comentar línea con FULL_THROTTLE_BOOST (línea ~7829)
+          sed -i 's/sched_boost() != FULL_THROTTLE_BOOST/\/\/ sched_boost() != FULL_THROTTLE_BOOST/g' kernel/sched/fair.c || true
+          
+          # Comentar llamada a trace_sched_load_balance_skip_tasks (línea ~9427)
+          sed -i 's/trace_sched_load_balance_skip_tasks(/\/\/ trace_sched_load_balance_skip_tasks(/g' kernel/sched/fair.c || true
+          
+          # Comentar llamada a mark_reserved (línea ~11225)
+          sed -i 's/mark_reserved(this_cpu);/\/\/ mark_reserved(this_cpu);/g' kernel/sched/fair.c || true
+          
+          # Driver patch si existe
+          if [ -f "drivers/media/rc/msm-geni-ir.c" ]; then
+            sed -i '1i#include <linux/irq.h>' drivers/media/rc/msm-geni-ir.c
+          fi
+          
+          echo "Patches applied"
 
       - name: "👍 Make defconfig"
         working-directory: ./${{ env.kernelDir }}/${{ env.kernelName }}
         env:
           args: ${{ steps.generate-args.outputs.args }}
         run: |
-          echo "PATH Variable: $PATH"
+          echo "Generating defconfig..."
           make ${{ env.args }} ${{ env.DEFCONFIG_NAME }}
+          if [ $? -ne 0 ]; then
+            echo "ERROR: defconfig generation failed"
+            exit 1
+          fi
 
       - name: "🎶 Build kernel"
         working-directory: ./${{ env.kernelDir }}/${{ env.kernelName }}
         env:
           args: ${{ steps.generate-args.outputs.args }}
         run: |
-          echo "PATH Variable: $PATH"
-          make ${args}
+          echo "Starting kernel compilation..."
+          make ${{ env.args }}
+          if [ $? -ne 0 ]; then
+            echo "ERROR: Kernel build failed"
+            exit 1
+          fi
+          echo "Kernel build successful"
 
       - name: "💛 Upload Image"
         uses: actions/upload-artifact@v4
