@@ -1,9 +1,9 @@
 [
   {
     "kernelSource": {
-      "name": "Tejas-Kernel-Vayu-TDA",
+      "name": "Tejas-Kernel-Vayu-Sixteen",
       "repo": "https://github.com/tejas101k/kernel_xiaomi_vayu",
-      "branch": "TDA",
+      "branch": "sixteen",
       "device": "vayu"
     },
     "withKernelSU": true,
