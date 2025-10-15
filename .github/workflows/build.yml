@@ -139,10 +139,11 @@ jobs:
 
           cat ./arch/${{ env.ARCH }}/configs/${{ env.DEFCONFIG_NAME }}
 
-      - name: "🔧 Forzar Límite de CPUs (NR_CPUS)"
+      - name: "🔧 Aplicar Parches de Configuración"
         working-directory: ./${{ env.kernelDir }}/${{ env.kernelName }}
         run: |
           echo "CONFIG_NR_CPUS=8" >> arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
+          echo "CONFIG_NO_HZ_FULL=y" >> arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
 
       - name: "👍 Make defconfig"
         working-directory: ./${{ env.kernelDir }}/${{ env.kernelName }}
