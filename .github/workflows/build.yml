@@ -20,12 +20,9 @@ jobs:
       - name: "😆 Generate Matrix"
         id: generate-matrix
         run: |
-          repos=$(cat ${{ env.CONFIGURATION }} | jq -c '.[]')
-          {
-            echo "repos<<EOF"
-            echo "$repos"
-            echo "EOF"
-          } >> $GITHUB_OUTPUT
+          echo "repos<<EOF" >> $GITHUB_OUTPUT
+          cat ${{ env.CONFIGURATION }} >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
   Build-Kernel:
     name: "🐎 Build kernel"
