@@ -142,7 +142,7 @@ jobs:
       - name: "🔧 Forzar Límite de CPUs (NR_CPUS)"
         working-directory: ./${{ env.kernelDir }}/${{ env.kernelName }}
         run: |
-          sed -i 's/CONFIG_NR_CPUS=.*/CONFIG_NR_CPUS=8/g' arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
+          echo "CONFIG_NR_CPUS=8" >> arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
 
       - name: "👍 Make defconfig"
         working-directory: ./${{ env.kernelDir }}/${{ env.kernelName }}
