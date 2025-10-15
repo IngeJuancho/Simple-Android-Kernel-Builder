@@ -144,6 +144,7 @@ jobs:
         run: |
           echo "CONFIG_NR_CPUS=8" >> arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
           echo "CONFIG_NO_HZ_FULL=y" >> arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
+          sed -i 's/CONFIG_SCHED_DEBUG=y/# CONFIG_SCHED_DEBUG is not set/g' arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
 
       - name: "👍 Make defconfig"
         working-directory: ./${{ env.kernelDir }}/${{ env.kernelName }}
