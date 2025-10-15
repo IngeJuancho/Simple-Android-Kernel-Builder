@@ -154,15 +154,22 @@ jobs:
           # Parches de código para errores conocidos del kernel Tejas
           echo "Patching kernel/sched/fair.c..."
           
-          # Comentar FULL_THROTTLE_BOOST - usa una estrategia más robusta
-          sed -i 's/!= FULL_THROTTLE_BOOST/!= 0 \/\/ FULL_THROTTLE_BOOST/g' kernel/sched/fair.c || true
+          # Comentar bloque problemático alrededor de FULL_THROTTLE_BOOST y sched_boost
+          # Usa awk para encontrar y comentar la línea con sched_boost() !=
+          awk '/sched_boost\(\) !=/ { gsub(/^/, "// "); } 1' kernel/sched/fair.c > kernel/sched/fair.c.tmp && mv kernel/sched/fair.c.tmp kernel/sched/fair.c || true
           
-          # Comentar llamada completa a trace_sched_load_balance_skip_tasks
-          # Busca la línea y la comenta completa (multiline safe)
+          # Comentar llamada completa a trace_sched_load_balance_skip_tasks (multiline safe)
           sed -i '/trace_sched_load_balance_skip_tasks/,/);/s/^/\/\/ /' kernel/sched/fair.c || true
           
           # Comentar llamada a mark_reserved
           sed -i 's/mark_reserved(this_cpu);/\/\/ mark_reserved(this_cpu);/g' kernel/sched/fair.c || true
+          
+          echo "Patching kernel/time/alarmtimer.c..."
+          
+          # Declarar alarm_fired si no existe - agregar después del #include
+          if grep -q "use of undeclared identifier 'alarm_fired'" /dev/null 2>&1 || ! grep -q "static.*alarm_fired" kernel/time/alarmtimer.c; then
+            sed -i '/^#include/a static bool alarm_fired = false;' kernel/time/alarmtimer.c || true
+          fi
           
           # Driver patch si existe
           if [ -f "drivers/media/rc/msm-geni-ir.c" ]; then
