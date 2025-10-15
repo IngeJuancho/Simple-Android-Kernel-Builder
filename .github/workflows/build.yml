@@ -139,12 +139,13 @@ jobs:
 
           cat ./arch/${{ env.ARCH }}/configs/${{ env.DEFCONFIG_NAME }}
 
-      - name: "🔧 Aplicar Parches de Configuración"
+      - name: "🩹 Aplicar Parches al Código y Configuración"
         working-directory: ./${{ env.kernelDir }}/${{ env.kernelName }}
         run: |
           echo "CONFIG_NR_CPUS=8" >> arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
           echo "CONFIG_NO_HZ_FULL=y" >> arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
           sed -i 's/CONFIG_SCHED_DEBUG=y/# CONFIG_SCHED_DEBUG is not set/g' arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
+          sed -i '1i#include <linux/irq.h>' drivers/media/rc/msm-geni-ir.c
 
       - name: "👍 Make defconfig"
         working-directory: ./${{ env.kernelDir }}/${{ env.kernelName }}
