@@ -52,15 +52,6 @@ jobs:
         run: |
           mkdir -p ${{ env.kernelDir }}
           git clone --depth=1 --branch ${{ env.kernelBranch }} ${{ env.kernelRepo }} ${{ env.kernelDir }}/${{ env.kernelName }}
-
-      # --- CAMINO ALTERNATIVO FINAL: Usar la toolchain oficial de LineageOS ---
-      - name: "🔧 Download Toolchain (LineageOS)"
-        uses: actions/checkout@v4
-        with:
-          repository: 'LineageOS/android_prebuilts_clang_host_linux-x86'
-          path: '${{ env.kernelDir }}/clang'
-          ref: 'lineage-21.0' # Una rama estable y moderna
-          fetch-depth: 1
           
       - name: "😎 Set build environment and arguments"
         id: generate-args
@@ -68,11 +59,7 @@ jobs:
         env:
           params: "${{ toJSON(matrix.repos.params) }}"
         run: |
-          # La toolchain de LineageOS tiene una subcarpeta extra
-          CLANG_PATH=$(pwd)/clang/clang-r510928/bin
-          echo "PATH=$CLANG_PATH:$PATH" >> $GITHUB_ENV
-          
-          echo "Verifying toolchain..."
+          echo "Verifying system toolchain..."
           clang --version
           
           args="-j$(nproc --all) O=$(pwd)/${{ env.OUT_DIR }}"
@@ -140,4 +127,3 @@ jobs:
           name: "Flashable-Kernel-${{ matrix.repos.kernelSource.device }}"
           path: ./${{ env.kernelDir }}/*.zip
           if-no-files-found: error
-
