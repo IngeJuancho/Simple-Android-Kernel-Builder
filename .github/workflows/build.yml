@@ -53,14 +53,12 @@ jobs:
           mkdir -p ${{ env.kernelDir }}
           git clone --depth=1 --branch ${{ env.kernelBranch }} ${{ env.kernelRepo }} ${{ env.kernelDir }}/${{ env.kernelName }}
 
-      # --- CORRECCIÓN: Usar una toolchain más moderna para Android 16 ---
-      - name: "🔧 Download Toolchain"
-        working-directory: ./${{ env.kernelDir }}
-        run: |
-          echo "Downloading AOSP Clang (for Android 14+)..."
-          wget -q https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/tags/android-14.0.0_r11.tar.gz
-          mkdir clang
-          tar -xf android-14.0.0_r11.tar.gz -C clang
+      - name: "🔧 Download Toolchain (Neutron Clang)"
+        uses: actions/checkout@v4
+        with:
+          repository: 'Panchajanya1999/neutron-clang'
+          path: '${{ env.kernelDir }}/clang'
+          fetch-depth: 1
           
       - name: "😎 Set build environment and arguments"
         id: generate-args
@@ -75,7 +73,6 @@ jobs:
           clang --version
           
           args="-j$(nproc --all) O=$(pwd)/${{ env.OUT_DIR }}"
-          args="$args HOSTCC=gcc HOSTLD=ld"
           
           while read -r entry; do
             key=$(echo "$entry" | cut -d= -f1)
