@@ -4,26 +4,20 @@
       "name": "Tejas-Kernel-Vayu-Sixteen",
       "repo": "https://github.com/tejas101k/kernel_xiaomi_vayu",
       "branch": "sixteen",
-      "device": "vayu"
+      "device": "vayu",
+      "defconfig": "arch/arm64/configs/vayu_defconfig"
     },
     "withKernelSU": true,
-    "toolchains": [
-      {
-        "repo": "https://github.com/kdrag0n/proton-clang",
-        "branch": "master",
-        "name": "clang"
-      }
-    ],
     "params": {
       "ARCH": "arm64",
       "CC": "clang",
+      "LLVM": "1",
       "LD": "ld.lld",
       "AR": "llvm-ar",
       "NM": "llvm-nm",
       "OBJCOPY": "llvm-objcopy",
       "OBJDUMP": "llvm-objdump",
-      "STRIP": "llvm-strip",
-      "LLVM": "1"
+      "STRIP": "llvm-strip"
     }
   }
 ]
