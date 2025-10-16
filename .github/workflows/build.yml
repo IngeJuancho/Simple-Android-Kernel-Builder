@@ -53,12 +53,11 @@ jobs:
           mkdir -p ${{ env.kernelDir }}
           git clone --depth=1 --branch ${{ env.kernelBranch }} ${{ env.kernelRepo }} ${{ env.kernelDir }}/${{ env.kernelName }}
 
+      # --- CAMINO ALTERNATIVO: Usar git clone directo ---
       - name: "🔧 Download Toolchain (Neutron Clang)"
-        uses: actions/checkout@v4
-        with:
-          repository: 'Panchajanya1999/neutron-clang'
-          path: '${{ env.kernelDir }}/clang'
-          fetch-depth: 1
+        working-directory: ./${{ env.kernelDir }}
+        run: |
+          git clone --depth=1 https://github.com/Panchajanya1999/neutron-clang.git clang
           
       - name: "😎 Set build environment and arguments"
         id: generate-args
