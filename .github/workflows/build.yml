@@ -53,13 +53,13 @@ jobs:
           mkdir -p ${{ env.kernelDir }}
           git clone --depth=1 --branch ${{ env.kernelBranch }} ${{ env.kernelRepo }} ${{ env.kernelDir }}/${{ env.kernelName }}
 
-      - name: "🔧 Download Toolchain (LineageOS Kernel)"
-        uses: actions/checkout@v4
-        with:
-          repository: 'LineageOS/android_prebuilts_clang_kernel_linux-x86_clang-r416183b'
-          path: '${{ env.kernelDir }}/clang'
-          fetch-depth: 1
-          
+      # --- CORRECCIÓN: Usar la toolchain exacta del desarrollador ---
+      - name: "🔧 Download Toolchain (AOSP clang-r353983c)"
+        working-directory: ./${{ env.kernelDir }}
+        run: |
+          echo "Downloading specific AOSP Clang..."
+          git clone https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86 -b android-10.0.0_r47 --depth=1 clang
+
       - name: "😎 Set build environment and arguments"
         id: generate-args
         working-directory: ./${{ env.kernelDir }}
@@ -73,7 +73,6 @@ jobs:
           clang --version
           
           args="-j$(nproc --all) O=$(pwd)/${{ env.OUT_DIR }}"
-          args="$args HOSTCC=gcc HOSTLD=ld"
           
           while read -r entry; do
             key=$(echo "$entry" | cut -d= -f1)
