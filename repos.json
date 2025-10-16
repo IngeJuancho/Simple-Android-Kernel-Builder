@@ -9,20 +9,15 @@
     "withKernelSU": true,
     "toolchains": [
       {
-        "repo": "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86",
+        "repo": "https://github.com/kdrag0n/proton-clang",
         "branch": "master",
         "name": "clang"
-      },
-      {
-        "repo": "https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9",
-        "branch": "master", 
-        "name": "gcc-aarch64"
       }
     ],
     "params": {
       "ARCH": "arm64",
-      "CLANG_TRIPLE": "aarch64-linux-gnu-",
       "CC": "clang",
+      "LD": "ld.lld",
       "AR": "llvm-ar",
       "NM": "llvm-nm",
       "OBJCOPY": "llvm-objcopy",
