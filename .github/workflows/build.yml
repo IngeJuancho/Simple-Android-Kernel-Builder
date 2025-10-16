@@ -136,16 +136,20 @@ jobs:
         run: |
           echo "Applying custom patches..."
           # --- Parches de Configuración ---
-          echo "Applying defconfig patches..."
           echo "CONFIG_NR_CPUS=8" >> arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
           echo "CONFIG_NO_HZ_FULL=y" >> arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
           sed -i 's/CONFIG_SCHED_DEBUG=y/# CONFIG_SCHED_DEBUG is not set/g' arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
           
           # --- Parches de Código Fuente ---
-          echo "Patching source code for known bugs..."
           find kernel/sched -name "*.c" -exec sed -i 's/.*FULL_THROTTLE_BOOST.*/\/\/ &/g' {} \; || true
           find kernel/sched -name "*.c" -exec sed -i '/trace_sched_load_balance_skip_tasks/,/);/s/^/\/\/ /' {} \; || true
           find kernel/sched -name "*.c" -exec sed -i 's/mark_reserved(this_cpu);/\/\/ mark_reserved(this_cpu);/g' {} \; || true
+          find kernel/sched -name "rt.c" -exec sed -i 's/.*boost_on_big.*/\/\/ &/g' {} \; || true
+          
+          if ! grep -q "static bool alarm_fired" kernel/time/alarmtimer.c; then
+            sed -i '1a static bool alarm_fired = false;' kernel/time/alarmtimer.c
+          fi
+          
           if [ -f "drivers/media/rc/msm-geni-ir.c" ]; then
             sed -i '1i#include <linux/irq.h>' drivers/media/rc/msm-geni-ir.c || true
           fi
