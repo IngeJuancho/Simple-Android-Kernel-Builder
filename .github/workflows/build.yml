@@ -54,10 +54,9 @@ jobs:
           cd ${{ env.kernelDir }}
           echo "Cloning kernel from: ${{ env.kernelRepo }} (Branch: ${{ env.kernelBranch }})"
           git clone --depth=1 --branch ${{ env.kernelBranch }} ${{ env.kernelRepo }} ${{ env.kernelName }}
-          # --- CAMBIO: Usar AOSP Clang compatible ---
+          # --- CORRECCIÓN: Nuevo enlace para AOSP Clang ---
           echo "Downloading AOSP Clang..."
-          wget -q https://gitlab.com/crdroid-releases/crdroid_prebuilts_clang_host_linux-x86_clang-r450784d/-/raw/12.1/clang-r450784d.tar.gz
-          tar -xf clang-r450784d.tar.gz
+          git clone https://gitlab.com/zycromerz/aosp-clang.git --depth=1 clang
           
       - name: "😎 Set build environment and arguments"
         id: generate-args
@@ -137,3 +136,4 @@ jobs:
           name: "Flashable-Kernel-${{ matrix.repos.kernelSource.device }}"
           path: ./${{ env.kernelDir }}/*.zip
           if-no-files-found: error
+
