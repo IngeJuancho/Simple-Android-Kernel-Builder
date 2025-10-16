@@ -54,8 +54,10 @@ jobs:
           cd ${{ env.kernelDir }}
           echo "Cloning kernel from: ${{ env.kernelRepo }} (Branch: ${{ env.kernelBranch }})"
           git clone --depth=1 --branch ${{ env.kernelBranch }} ${{ env.kernelRepo }} ${{ env.kernelName }}
-          echo "Cloning Proton Clang..."
-          git clone --depth=1 https://github.com/kdrag0n/proton-clang clang
+          # --- CAMBIO: Usar AOSP Clang compatible ---
+          echo "Downloading AOSP Clang..."
+          wget -q https://gitlab.com/crdroid-releases/crdroid_prebuilts_clang_host_linux-x86_clang-r450784d/-/raw/12.1/clang-r450784d.tar.gz
+          tar -xf clang-r450784d.tar.gz
           
       - name: "😎 Set build environment and arguments"
         id: generate-args
@@ -96,19 +98,12 @@ jobs:
         env:
           args: ${{ steps.generate-args.outputs.args }}
         run: |
-          # Limpiar compilaciones anteriores
           make ${{ env.args }} mrproper
-
-          # Generar .config de forma segura
           cp ${{ env.DEFCONFIG_PATH }} ../${{ env.OUT_DIR }}/.config
           make ${{ env.args }} olddefconfig
-
-          # Modificar configuración (ej: NR_CPUS)
           sed -i 's/CONFIG_NR_CPUS=.*/CONFIG_NR_CPUS=8/g' ../${{ env.OUT_DIR }}/.config
-
-          # Compilar el kernel y los archivos de arranque
           echo "Starting kernel compilation..."
-          make ${{ env.args }} # <--- ESTA ES LA LÍNEA CORREGIDA
+          make ${{ env.args }}
 
       - name: "📦 Pack with AnyKernel3"
         working-directory: ./${{ env.kernelDir }}
@@ -116,7 +111,6 @@ jobs:
           echo "Packaging with AnyKernel3..."
           git clone --depth=1 https://github.com/osm0sis/AnyKernel3
           
-          # Copiar artefactos de compilación
           if [[ -f "${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/Image.gz" ]]; then
             cp "${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/Image.gz" AnyKernel3/
           elif [[ -f "${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/Image" ]]; then
