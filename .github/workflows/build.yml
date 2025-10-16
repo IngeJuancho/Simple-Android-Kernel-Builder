@@ -46,18 +46,21 @@ jobs:
       - name: "⭐ Install prerequisites"
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential bc curl git zip libssl-dev flex bison lld
+          sudo apt-get install -y build-essential bc curl git zip libssl-dev flex bison lld zstd
 
       - name: "🌟 Clone kernel source"
         run: |
           mkdir -p ${{ env.kernelDir }}
           git clone --depth=1 --branch ${{ env.kernelBranch }} ${{ env.kernelRepo }} ${{ env.kernelDir }}/${{ env.kernelName }}
 
-      # --- CAMINO ALTERNATIVO: Usar git clone directo ---
+      # --- CAMINO ALTERNATIVO: Descarga directa de la Toolchain ---
       - name: "🔧 Download Toolchain (Neutron Clang)"
         working-directory: ./${{ env.kernelDir }}
         run: |
-          git clone --depth=1 https://github.com/Panchajanya1999/neutron-clang.git clang
+          echo "Downloading Neutron Clang release..."
+          wget -q https://github.com/Panchajanya1999/neutron-clang/releases/download/18.0.0-20240321/neutron-clang-18.0.0-20240321.tar.zst
+          tar -xf neutron-clang-18.0.0-20240321.tar.zst
+          mv neutron-clang-18.0.0-20240321 clang
           
       - name: "😎 Set build environment and arguments"
         id: generate-args
