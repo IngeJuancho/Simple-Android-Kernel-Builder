@@ -52,6 +52,12 @@ jobs:
         run: |
           mkdir -p ${{ env.kernelDir }}
           git clone --depth=1 --branch ${{ env.kernelBranch }} ${{ env.kernelRepo }} ${{ env.kernelDir }}/${{ env.kernelName }}
+
+      # --- CAMINO ALTERNATIVO: Usar la toolchain de LineageOS para kernels ---
+      - name: "🔧 Download Toolchain (LineageOS Kernel)"
+        working-directory: ./${{ env.kernelDir }}
+        run: |
+          git clone --depth=1 https://github.com/LineageOS/android_prebuilts_clang_kernel_linux-x86_clang-r416183b.git clang
           
       - name: "😎 Set build environment and arguments"
         id: generate-args
@@ -59,10 +65,15 @@ jobs:
         env:
           params: "${{ toJSON(matrix.repos.params) }}"
         run: |
-          echo "Verifying system toolchain..."
+          CLANG_PATH=$(pwd)/clang/bin
+          echo "PATH=$CLANG_PATH:$PATH" >> $GITHUB_ENV
+          
+          echo "Verifying toolchain..."
           clang --version
           
           args="-j$(nproc --all) O=$(pwd)/${{ env.OUT_DIR }}"
+          # Esencial para que las herramientas anfitrión compilen en el runner
+          args="$args HOSTCC=gcc HOSTLD=ld"
           
           while read -r entry; do
             key=$(echo "$entry" | cut -d= -f1)
@@ -127,3 +138,4 @@ jobs:
           name: "Flashable-Kernel-${{ matrix.repos.kernelSource.device }}"
           path: ./${{ env.kernelDir }}/*.zip
           if-no-files-found: error
+
