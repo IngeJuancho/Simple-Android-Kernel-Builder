@@ -46,20 +46,21 @@ jobs:
       - name: "⭐ Install prerequisites"
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential bc curl git zip libssl-dev flex bison lld
+          sudo apt-get install -y build-essential bc curl git zip libssl-dev flex bison lld zstd
 
       - name: "🌟 Clone kernel source"
         run: |
           mkdir -p ${{ env.kernelDir }}
           git clone --depth=1 --branch ${{ env.kernelBranch }} ${{ env.kernelRepo }} ${{ env.kernelDir }}/${{ env.kernelName }}
 
-      # --- NUEVO ENFOQUE: Usar ZyC-Clang para máxima compatibilidad ---
-      - name: "🔧 Download Toolchain (ZyC-Clang)"
-        uses: actions/checkout@v4
-        with:
-          repository: 'ZyCromerZ/Clang'
-          path: '${{ env.kernelDir }}/clang'
-          fetch-depth: 1
+      # --- CAMINO ALTERNATIVO: Usar una toolchain más antigua (Neutron Clang 13) ---
+      - name: "🔧 Download Toolchain (Neutron Clang 13)"
+        working-directory: ./${{ env.kernelDir }}
+        run: |
+          echo "Downloading Neutron Clang 13 release..."
+          wget -q https://github.com/Panchajanya1999/neutron-clang/releases/download/13.0.0-20211101/neutron-clang-13.0.0-20211101.tar.zst
+          tar -xf neutron-clang-13.0.0-20211101.tar.zst
+          mv neutron-clang-13.0.0-20211101 clang
           
       - name: "😎 Set build environment and arguments"
         id: generate-args
@@ -74,7 +75,6 @@ jobs:
           clang --version
           
           args="-j$(nproc --all) O=$(pwd)/${{ env.OUT_DIR }}"
-          args="$args HOSTCC=gcc HOSTLD=ld"
           
           while read -r entry; do
             key=$(echo "$entry" | cut -d= -f1)
