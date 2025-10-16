@@ -1,4 +1,4 @@
-name: "Build kernels"
+name: Build kernels
 
 env:
   CONFIGURATION: "repos.json"
@@ -129,25 +129,42 @@ jobs:
           make ${{ env.args }} clean 2>/dev/null || true
           make ${{ env.args }} mrproper 2>/dev/null || true
 
-      - name: "🩹 Aplicar Parches"
+      - name: "🩹 Apply Patches"
         working-directory: ./${{ env.kernelDir }}/${{ env.kernelName }}
         run: |
           echo "Applying custom patches..."
+          
           # --- Parches de Configuración ---
           echo "Applying defconfig patches..."
           echo "CONFIG_NR_CPUS=8" >> arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
           echo "CONFIG_NO_HZ_FULL=y" >> arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
           sed -i 's/CONFIG_SCHED_DEBUG=y/# CONFIG_SCHED_DEBUG is not set/g' arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
           
-          # --- Parches de Código Fuente ---
-          echo "Patching source code for known bugs..."
-          find kernel/sched -name "*.c" -exec sed -i 's/.*FULL_THROTTLE_BOOST.*/\/\/ &/g' {} \; || true
-          find kernel/sched -name "*.c" -exec sed -i '/trace_sched_load_balance_skip_tasks/,/);/s/^/\/\/ /' {} \; || true
-          find kernel/sched -name "*.c" -exec sed -i 's/mark_reserved(this_cpu);/\/\/ mark_reserved(this_cpu);/g' {} \; || true
+          # --- FIX CRÍTICO: Restaurar boost_on_big en rt.c ---
+          echo "Fixing scheduler boost_on_big variable..."
+          if [ -f "kernel/sched/rt.c" ]; then
+            # Buscar la línea problemática y arreglarla
+            # Si la variable boost_on_big fue comentada, la restauramos
+            sed -i '1774,1776{
+              /boost_on_big/! {
+                /sched_boost_policy.*SCHED_BOOST_ON_BIG/ {
+                  s/.*/\t\tbool boost_on_big = (sched_boost_policy() == SCHED_BOOST_ON_BIG);/
+                }
+              }
+            }' kernel/sched/rt.c || true
+          fi
+          
+          # --- ELIMINAR: Parches problemáticos del scheduler ---
+          # Estos parches comentaban líneas críticas causando errores
+          # find kernel/sched -name "*.c" -exec sed -i 's/.*FULL_THROTTLE_BOOST.*/\/\/ &/g' {} \; || true
+          # find kernel/sched -name "*.c" -exec sed -i '/trace_sched_load_balance_skip_tasks/,/);/s/^/\/\/ /' {} \; || true
+          # find kernel/sched -name "*.c" -exec sed -i 's/mark_reserved(this_cpu);/\/\/ mark_reserved(this_cpu);/g' {} \; || true
+          
+          # --- Include faltante para msm-geni-ir.c ---
           if [ -f "drivers/media/rc/msm-geni-ir.c" ]; then
             sed -i '1i#include <linux/irq.h>' drivers/media/rc/msm-geni-ir.c || true
           fi
-          echo "Patches applied."
+          echo "Patches applied successfully."
 
       - name: "😋 Update KernelSU"
         working-directory: ./${{ env.kernelDir }}/${{ env.kernelName }}
