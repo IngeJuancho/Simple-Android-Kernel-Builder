@@ -9,13 +9,13 @@
     "withKernelSU": true,
     "toolchains": [
       {
-        "repo": "https://github.com/LineageOS/android_prebuilts_clang_kernel_linux-x86_clang-r416183b",
+        "repo": "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86",
         "branch": "master",
         "name": "clang"
       },
       {
         "repo": "https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9",
-        "branch": "master",
+        "branch": "master", 
         "name": "gcc-aarch64"
       }
     ],
@@ -27,7 +27,8 @@
       "NM": "llvm-nm",
       "OBJCOPY": "llvm-objcopy",
       "OBJDUMP": "llvm-objdump",
-      "STRIP": "llvm-strip"
+      "STRIP": "llvm-strip",
+      "LLVM": "1"
     }
   }
 ]
