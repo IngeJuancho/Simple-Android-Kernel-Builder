@@ -135,12 +135,12 @@ jobs:
         working-directory: ./${{ env.kernelDir }}/${{ env.kernelName }}
         run: |
           echo "Applying custom patches..."
-          # --- Parches de Configuración (aplicados al defconfig) ---
+          # --- Parches de Configuración ---
           echo "CONFIG_NR_CPUS=8" >> arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
           echo "CONFIG_NO_HZ_FULL=y" >> arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
           sed -i 's/CONFIG_SCHED_DEBUG=y/# CONFIG_SCHED_DEBUG is not set/g' arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
           
-          # --- Parches de Código Fuente (aplicados a los archivos .c) ---
+          # --- Parches de Código Fuente ---
           find kernel/sched -name "*.c" -exec sed -i 's/.*FULL_THROTTLE_BOOST.*/\/\/ &/g' {} \; || true
           find kernel/sched -name "*.c" -exec sed -i '/trace_sched_load_balance_skip_tasks/,/);/s/^/\/\/ /' {} \; || true
           find kernel/sched -name "*.c" -exec sed -i 's/mark_reserved(this_cpu);/\/\/ mark_reserved(this_cpu);/g' {} \; || true
