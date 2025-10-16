@@ -5,19 +5,20 @@
       "repo": "https://github.com/tejas101k/kernel_xiaomi_vayu",
       "branch": "sixteen",
       "device": "vayu",
-      "defconfig": "arch/arm64/configs/vayu_defconfig"
+      "defconfig": "arch/arm64/configs/vayu_user_defconfig"
     },
     "withKernelSU": true,
     "params": {
       "ARCH": "arm64",
       "CC": "clang",
-      "LLVM": "1",
       "LD": "ld.lld",
       "AR": "llvm-ar",
       "NM": "llvm-nm",
       "OBJCOPY": "llvm-objcopy",
       "OBJDUMP": "llvm-objdump",
-      "STRIP": "llvm-strip"
+      "STRIP": "llvm-strip",
+      "LLVM": "1"
     }
   }
 ]
+
