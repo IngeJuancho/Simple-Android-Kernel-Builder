@@ -133,13 +133,13 @@ jobs:
         working-directory: ./${{ env.kernelDir }}/${{ env.kernelName }}
         run: |
           echo "Applying custom patches..."
-          # --- Parches de Configuración ---
+          # --- Configuration Patches ---
           echo "Applying defconfig patches..."
           echo "CONFIG_NR_CPUS=8" >> arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
           echo "CONFIG_NO_HZ_FULL=y" >> arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
           sed -i 's/CONFIG_SCHED_DEBUG=y/# CONFIG_SCHED_DEBUG is not set/g' arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
           
-          # --- Parches de Código Fuente ---
+          # --- Source Code Patches ---
           echo "Patching source code for known bugs..."
           find kernel/sched -name "*.c" -exec sed -i 's/.*FULL_THROTTLE_BOOST.*/\/\/ &/g' {} \; || true
           find kernel/sched -name "*.c" -exec sed -i '/trace_sched_load_balance_skip_tasks/,/);/s/^/\/\/ /' {} \; || true
@@ -191,4 +191,25 @@ jobs:
           retention-days: 7
 
       - name: "💙 Upload Image.gz"
-        uses: actions/upload-artifact@v
+        uses: actions/upload-artifact@v4
+        with:
+          name: Image.gz_${{ env.kernelDevice }}_${{ env.kernelName }}_${{ env.kernelBranch }}
+          path: ./${{ env.kernelDir }}/${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/Image.gz
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: "💜 Upload dtb"
+        uses: actions/upload-artifact@v4
+        with:
+          name: dtb_${{ env.kernelDevice }}_${{ env.kernelName }}_${{ env.kernelBranch }}
+          path: ./${{ env.kernelDir }}/${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/dtb
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: "❤️ Upload dtbo.img"
+        uses: actions/upload-artifact@v4
+        with:
+          name: dtbo.img_${{ env.kernelDevice }}_${{ env.kernelName }}_${{ env.kernelBranch }}
+          path: ./${{ env.kernelDir }}/${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/dtbo.img
+          if-no-files-found: ignore
+          retention-days: 7
