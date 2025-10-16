@@ -43,7 +43,7 @@ jobs:
       DEFCONFIG_NAME: ${{ matrix.repos.kernelSource.device }}_defconfig
       withKernelSU: ${{ matrix.repos.withKernelSU }}
     steps:
-      - name: "✨ Create working dir"
+      - name: "✨ Create working directory"
         run: mkdir -p $kernelDir
 
       - name: "⭐ Install prerequisites"
@@ -51,12 +51,17 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential bc curl git zip ftp gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi libssl-dev lftp zstd wget libfl-dev python3 libarchive-tools
 
-      - name: "🌟 Clone kernel source => (${{ env.kernelRepo }})"
+      - name: "🌟 Clone kernel source"
         working-directory: ./${{ env.kernelDir }}
         run: |
+          echo "Cloning kernel from: $kernelRepo"
+          echo "Branch: $kernelBranch"
           git clone --recursive --branch $kernelBranch $kernelRepo $kernelName --depth=1
+          cd $kernelName
+          echo "Kernel commit:"
+          git log --oneline -1
 
-      - name: "💫 Get toolchains"
+      - name: "💫 Download and configure toolchains"
         working-directory: ./${{ env.kernelDir }}
         env:
           toolchains: "${{ toJSON(matrix.repos.toolchains) }}"
@@ -67,14 +72,14 @@ jobs:
             name=$(echo $toolchains | jq -r ".[$i].name")
             repo=$(echo $toolchains | jq -r ".[$i].repo")
             branch=$(echo $toolchains | jq -r ".[$i].branch")
-            echo "Cloning: $name from $repo (branch: $branch)"
+            echo "  - $name from $repo (branch: $branch)"
             git clone --recursive --branch $branch $repo $name --depth=1
             echo "$(pwd)/$name/" >> $GITHUB_PATH
             echo "$(pwd)/$name/bin" >> $GITHUB_PATH
           done
-          echo "Toolchains ready"
+          echo "Toolchains configured in PATH"
 
-      - name: "😎 Set args"
+      - name: "😎 Generate build arguments"
         id: generate-args
         working-directory: ./${{ env.kernelDir }}
         env:
@@ -115,7 +120,7 @@ jobs:
           fi
           echo "args=$args" >> $GITHUB_OUTPUT
 
-      - name: "🔧 Clean and prep kernel"
+      - name: "🔧 Clean kernel source"
         working-directory: ./${{ env.kernelDir }}/${{ env.kernelName }}
         env:
           args: ${{ steps.generate-args.outputs.args }}
@@ -124,69 +129,44 @@ jobs:
           make ${{ env.args }} clean 2>/dev/null || true
           make ${{ env.args }} mrproper 2>/dev/null || true
 
-      - name: "😋 Update KernelSU"
-        working-directory: ./${{ env.kernelDir }}/${{ env.kernelName }}
-        if: ${{ env.withKernelSU == 'true' }}
-        run: |
-          if [ -d "./KernelSU" ]; then
-            rm -rf "./KernelSU"
-          fi
-          if [ -d "./drivers/kernelsu" ]; then
-            rm -rf "./drivers/kernelsu"
-          fi
-
-          curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -s main
-
-          echo -e "\nCONFIG_KPROBES=y" >> ./arch/${{ env.ARCH }}/configs/${{ env.DEFCONFIG_NAME }}
-          echo -e "\nCONFIG_HAVE_KPROBES=y" >> ./arch/${{ env.ARCH }}/configs/${{ env.DEFCONFIG_NAME }}
-          echo -e "\nCONFIG_KPROBE_EVENTS=y" >> ./arch/${{ env.ARCH }}/configs/${{ env.DEFCONFIG_NAME }}
-
-      - name: "🩹 Aplicar Parches al Código y Configuración"
+      - name: "🩹 Aplicar Parches"
         working-directory: ./${{ env.kernelDir }}/${{ env.kernelName }}
         run: |
-          echo "Applying kernel patches..."
-          
-          # Configuración
+          echo "Applying custom patches..."
+          # --- Parches de Configuración ---
+          echo "Applying defconfig patches..."
           echo "CONFIG_NR_CPUS=8" >> arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
           echo "CONFIG_NO_HZ_FULL=y" >> arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
           sed -i 's/CONFIG_SCHED_DEBUG=y/# CONFIG_SCHED_DEBUG is not set/g' arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
           
-          # Parches de código para errores conocidos del kernel Tejas
-          echo "Patching kernel source code..."
-          
-          # 1. Comentar todas las líneas con FULL_THROTTLE_BOOST en scheduler
+          # --- Parches de Código Fuente ---
+          echo "Patching source code for known bugs..."
           find kernel/sched -name "*.c" -exec sed -i 's/.*FULL_THROTTLE_BOOST.*/\/\/ &/g' {} \; || true
-          
-          # 2. Comentar llamadas a trace_sched_load_balance_skip_tasks
           find kernel/sched -name "*.c" -exec sed -i '/trace_sched_load_balance_skip_tasks/,/);/s/^/\/\/ /' {} \; || true
-          
-          # 3. Comentar llamadas a mark_reserved
           find kernel/sched -name "*.c" -exec sed -i 's/mark_reserved(this_cpu);/\/\/ mark_reserved(this_cpu);/g' {} \; || true
-          
-          # 4. Arreglar alarmtimer.c - solo definir alarm_fired UNA VEZ si falta
-          if ! grep -q "static bool alarm_fired" kernel/time/alarmtimer.c; then
-            # Encontrar la primera línea después de #include y agregar la definición
-            sed -i '/^#include.*h>$/a static bool alarm_fired = false;' kernel/time/alarmtimer.c | head -1
-          fi
-          
-          # Driver patch si existe
           if [ -f "drivers/media/rc/msm-geni-ir.c" ]; then
             sed -i '1i#include <linux/irq.h>' drivers/media/rc/msm-geni-ir.c || true
           fi
-          
-          echo "Patches applied successfully"
+          echo "Patches applied."
 
-      - name: "👍 Make defconfig"
+      - name: "😋 Update KernelSU"
+        working-directory: ./${{ env.kernelDir }}/${{ env.kernelName }}
+        if: ${{ env.withKernelSU == 'true' }}
+        run: |
+          echo "Installing KernelSU..."
+          curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -s main
+          echo "Adding KernelSU kprobe configs..."
+          echo -e "\nCONFIG_KPROBES=y" >> ./arch/${{ env.ARCH }}/configs/${{ env.DEFCONFIG_NAME }}
+          echo -e "\nCONFIG_HAVE_KPROBES=y" >> ./arch/${{ env.ARCH }}/configs/${{ env.DEFCONFIG_NAME }}
+          echo -e "\nCONFIG_KPROBE_EVENTS=y" >> ./arch/${{ env.ARCH }}/configs/${{ env.DEFCONFIG_NAME }}
+
+      - name: "👍 Generate defconfig"
         working-directory: ./${{ env.kernelDir }}/${{ env.kernelName }}
         env:
           args: ${{ steps.generate-args.outputs.args }}
         run: |
-          echo "Generating defconfig..."
+          echo "Generating defconfig from ${{ env.DEFCONFIG_NAME }}..."
           make ${{ env.args }} ${{ env.DEFCONFIG_NAME }}
-          if [ $? -ne 0 ]; then
-            echo "ERROR: defconfig generation failed"
-            exit 1
-          fi
 
       - name: "🎶 Build kernel"
         working-directory: ./${{ env.kernelDir }}/${{ env.kernelName }}
@@ -195,24 +175,25 @@ jobs:
         run: |
           echo "Starting kernel compilation..."
           make ${{ env.args }}
-          if [ $? -ne 0 ]; then
-            echo "ERROR: Kernel build failed"
-            exit 1
-          fi
-          echo "Kernel build successful"
+
+      - name: "✅ Verify build artifacts"
+        working-directory: ./${{ env.kernelDir }}/${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot
+        run: |
+          echo "Verifying build artifacts..."
+          ls -lh Image* dtb* dtbo* 2>/dev/null || echo "WARNING: No boot artifacts found!"
 
       - name: "💛 Upload Image"
         uses: actions/upload-artifact@v4
         with:
-          name: Image(${{ env.kernelDevice }}-${{ env.kernelName }}-${{ env.kernelBranch }})
+          name: Image_${{ env.kernelDevice }}_${{ env.kernelName }}_${{ env.kernelBranch }}
           path: ./${{ env.kernelDir }}/${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/Image
-          if-no-files-found: ignore
+          if-no-files-found: error
           retention-days: 7
 
       - name: "💙 Upload Image.gz"
         uses: actions/upload-artifact@v4
         with:
-          name: Image.gz(${{ env.kernelDevice }}-${{ env.kernelName }}-${{ env.kernelBranch }})
+          name: Image.gz_${{ env.kernelDevice }}_${{ env.kernelName }}_${{ env.kernelBranch }}
           path: ./${{ env.kernelDir }}/${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/Image.gz
           if-no-files-found: ignore
           retention-days: 7
@@ -220,7 +201,7 @@ jobs:
       - name: "💜 Upload dtb"
         uses: actions/upload-artifact@v4
         with:
-          name: dtb(${{ env.kernelDevice }}-${{ env.kernelName }}-${{ env.kernelBranch }})
+          name: dtb_${{ env.kernelDevice }}_${{ env.kernelName }}_${{ env.kernelBranch }}
           path: ./${{ env.kernelDir }}/${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/dtb
           if-no-files-found: ignore
           retention-days: 7
@@ -228,7 +209,7 @@ jobs:
       - name: "❤️ Upload dtbo.img"
         uses: actions/upload-artifact@v4
         with:
-          name: dtbo.img(${{ env.kernelDevice }}-${{ env.kernelName }}-${{ env.kernelBranch }})
+          name: dtbo.img_${{ env.kernelDevice }}_${{ env.kernelName }}_${{ env.kernelBranch }}
           path: ./${{ env.kernelDir }}/${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/dtbo.img
           if-no-files-found: ignore
           retention-days: 7
