@@ -48,15 +48,18 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential bc curl git zip libssl-dev flex bison lld
 
-      - name: "🌟 Clone kernel and toolchain"
+      - name: "🌟 Clone kernel source"
         run: |
           mkdir -p ${{ env.kernelDir }}
-          cd ${{ env.kernelDir }}
-          echo "Cloning kernel from: ${{ env.kernelRepo }} (Branch: ${{ env.kernelBranch }})"
-          git clone --depth=1 --branch ${{ env.kernelBranch }} ${{ env.kernelRepo }} ${{ env.kernelName }}
-          # --- CORRECCIÓN FINAL: Usar una toolchain confiable de GitHub ---
-          echo "Downloading Arter97's AOSP Clang..."
-          git clone https://github.com/arter97/android-kernel-clang.git --depth=1 clang
+          git clone --depth=1 --branch ${{ env.kernelBranch }} ${{ env.kernelRepo }} ${{ env.kernelDir }}/${{ env.kernelName }}
+
+      # --- CORRECCIÓN FINAL: Usar la acción 'checkout' para la toolchain ---
+      - name: "🔧 Download Toolchain"
+        uses: actions/checkout@v4
+        with:
+          repository: 'arter97/android-kernel-clang'
+          path: '${{ env.kernelDir }}/clang'
+          depth: 1
           
       - name: "😎 Set build environment and arguments"
         id: generate-args
