@@ -58,7 +58,8 @@ jobs:
         with:
           repository: 'arter97/android-kernel-clang'
           path: '${{ env.kernelDir }}/clang'
-          # --- CORRECCIÓN: Usar el nombre de parámetro correcto ---
+          # --- CORRECCIÓN: Especificar la rama explícitamente ---
+          ref: 'master'
           fetch-depth: 1
           
       - name: "😎 Set build environment and arguments"
