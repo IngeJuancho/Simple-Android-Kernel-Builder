@@ -70,6 +70,9 @@ jobs:
           clang --version
           
           args="-j$(nproc --all) O=$(pwd)/${{ env.OUT_DIR }}"
+          # CORRECCIÓN: Usar GCC/LD del sistema para las herramientas anfitrión
+          args="$args HOSTCC=gcc HOSTLD=ld"
+          
           while read -r entry; do
             key=$(echo "$entry" | cut -d= -f1)
             value=$(echo "$entry" | cut -d= -f2)
@@ -141,3 +144,4 @@ jobs:
           name: "Flashable-Kernel-${{ matrix.repos.kernelSource.device }}"
           path: ./${{ env.kernelDir }}/*.zip
           if-no-files-found: error
+
