@@ -26,7 +26,7 @@ jobs:
 
   Build-Kernel:
     name: "🐎 Build kernel for ${{ matrix.repos.kernelSource.device }}"
-    runs-on: ubuntu-22.04 # <-- ESTA ES LA LÍNEA CORREGIDA
+    runs-on: ubuntu-22.04
     needs:
       - Set-repos
     strategy:
@@ -70,7 +70,6 @@ jobs:
           clang --version
           
           args="-j$(nproc --all) O=$(pwd)/${{ env.OUT_DIR }}"
-          # Usar GCC/LD del sistema para las herramientas anfitrión
           args="$args HOSTCC=gcc HOSTLD=ld"
           
           while read -r entry; do
@@ -109,7 +108,7 @@ jobs:
 
           # Compilar el kernel y los archivos de arranque
           echo "Starting kernel compilation..."
-          make ${{ env.args }} dtbo.img vendor_boot.img vendor_dlkm.img
+          make ${{ env.args }} # <--- ESTA ES LA LÍNEA CORREGIDA
 
       - name: "📦 Pack with AnyKernel3"
         working-directory: ./${{ env.kernelDir }}
@@ -144,4 +143,3 @@ jobs:
           name: "Flashable-Kernel-${{ matrix.repos.kernelSource.device }}"
           path: ./${{ env.kernelDir }}/*.zip
           if-no-files-found: error
-
