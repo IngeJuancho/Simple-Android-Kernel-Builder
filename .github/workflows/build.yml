@@ -48,18 +48,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential bc curl git zip libssl-dev flex bison lld
 
-      - name: "🌟 Clone kernel source"
+      # --- CORRECCIÓN: Unificar la clonación para evitar problemas de ruta ---
+      - name: "🌟 Clone Kernel & Toolchain"
         run: |
           mkdir -p ${{ env.kernelDir }}
-          git clone --depth=1 --branch ${{ env.kernelBranch }} ${{ env.kernelRepo }} ${{ env.kernelDir }}/${{ env.kernelName }}
-
-      # --- CORRECCIÓN: Usar la toolchain exacta del desarrollador ---
-      - name: "🔧 Download Toolchain (AOSP clang-r353983c)"
-        working-directory: ./${{ env.kernelDir }}
-        run: |
-          echo "Downloading specific AOSP Clang..."
-          git clone https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86 -b android-10.0.0_r47 --depth=1 clang
-
+          cd ${{ env.kernelDir }}
+          git clone --depth=1 --branch ${{ env.kernelBranch }} ${{ env.kernelRepo }} ${{ env.kernelName }}
+          git clone --depth=1 https://github.com/LineageOS/android_prebuilts_clang_kernel_linux-x86_clang-r416183b.git clang
+          
       - name: "😎 Set build environment and arguments"
         id: generate-args
         working-directory: ./${{ env.kernelDir }}
@@ -73,6 +69,7 @@ jobs:
           clang --version
           
           args="-j$(nproc --all) O=$(pwd)/${{ env.OUT_DIR }}"
+          args="$args HOSTCC=gcc HOSTLD=ld"
           
           while read -r entry; do
             key=$(echo "$entry" | cut -d= -f1)
