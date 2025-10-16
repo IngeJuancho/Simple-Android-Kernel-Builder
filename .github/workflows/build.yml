@@ -95,7 +95,9 @@ jobs:
 
           echo "ARCH=$ARCH" >> $GITHUB_ENV
 
-          args="-j$(nproc --all)"
+          NUM_THREADS=$(nproc --all)
+          args="-j${NUM_THREADS}"
+          
           if [ -n "${{ env.OUT_DIR }}" ]; then
             mkdir -p $(pwd)/${{ env.OUT_DIR }}
             args="$args O=$(pwd)/${{ env.OUT_DIR }}"
@@ -141,20 +143,10 @@ jobs:
           
           # --- Parches de Código Fuente ---
           echo "Patching source code for known bugs..."
-          # Arreglar sched/fair.c
-          find kernel/sched -name "fair.c" -exec sed -i 's/.*FULL_THROTTLE_BOOST.*/\/\/ &/g' {} \; || true
-          find kernel/sched -name "fair.c" -exec sed -i '/trace_sched_load_balance_skip_tasks/,/);/s/^/\/\/ /' {} \; || true
-          find kernel/sched -name "fair.c" -exec sed -i 's/mark_reserved(this_cpu);/\/\/ mark_reserved(this_cpu);/g' {} \; || true
-          
-          # Arreglar sched/rt.c
+          find kernel/sched -name "*.c" -exec sed -i 's/.*FULL_THROTTLE_BOOST.*/\/\/ &/g' {} \; || true
+          find kernel/sched -name "*.c" -exec sed -i '/trace_sched_load_balance_skip_tasks/,/);/s/^/\/\/ /' {} \; || true
+          find kernel/sched -name "*.c" -exec sed -i 's/mark_reserved(this_cpu);/\/\/ mark_reserved(this_cpu);/g' {} \; || true
           find kernel/sched -name "rt.c" -exec sed -i 's/.*boost_on_big.*/\/\/ &/g' {} \; || true
-          
-          # Arreglar alarmtimer.c (solo añadir si falta)
-          if ! grep -q "static bool alarm_fired" kernel/time/alarmtimer.c; then
-            sed -i '1a static bool alarm_fired = false;' kernel/time/alarmtimer.c
-          fi
-          
-          # Arreglar driver de infrarrojos
           if [ -f "drivers/media/rc/msm-geni-ir.c" ]; then
             sed -i '1i#include <linux/irq.h>' drivers/media/rc/msm-geni-ir.c || true
           fi
