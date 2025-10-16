@@ -53,14 +53,14 @@ jobs:
           mkdir -p ${{ env.kernelDir }}
           git clone --depth=1 --branch ${{ env.kernelBranch }} ${{ env.kernelRepo }} ${{ env.kernelDir }}/${{ env.kernelName }}
 
-      # --- CAMINO ALTERNATIVO: Descargar una toolchain pre-compilada y estable ---
+      # --- CORRECCIÓN: Usar una toolchain más moderna para Android 16 ---
       - name: "🔧 Download Toolchain"
         working-directory: ./${{ env.kernelDir }}
         run: |
-          echo "Downloading AOSP Clang..."
-          wget -q https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/tags/android-13.0.0_r45.tar.gz
+          echo "Downloading AOSP Clang (for Android 14+)..."
+          wget -q https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/tags/android-14.0.0_r11.tar.gz
           mkdir clang
-          tar -xf android-13.0.0_r45.tar.gz -C clang
+          tar -xf android-14.0.0_r11.tar.gz -C clang
           
       - name: "😎 Set build environment and arguments"
         id: generate-args
