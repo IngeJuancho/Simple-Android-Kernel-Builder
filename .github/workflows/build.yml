@@ -53,11 +53,13 @@ jobs:
           mkdir -p ${{ env.kernelDir }}
           git clone --depth=1 --branch ${{ env.kernelBranch }} ${{ env.kernelRepo }} ${{ env.kernelDir }}/${{ env.kernelName }}
 
-      # --- CAMINO ALTERNATIVO: Usar la toolchain de LineageOS para kernels ---
-      - name: "🔧 Download Toolchain (LineageOS Kernel)"
-        working-directory: ./${{ env.kernelDir }}
-        run: |
-          git clone --depth=1 https://github.com/LineageOS/android_prebuilts_clang_kernel_linux-x86_clang-r416183b.git clang
+      # --- NUEVO ENFOQUE: Usar ZyC-Clang para máxima compatibilidad ---
+      - name: "🔧 Download Toolchain (ZyC-Clang)"
+        uses: actions/checkout@v4
+        with:
+          repository: 'ZyCromerZ/Clang'
+          path: '${{ env.kernelDir }}/clang'
+          fetch-depth: 1
           
       - name: "😎 Set build environment and arguments"
         id: generate-args
@@ -72,7 +74,6 @@ jobs:
           clang --version
           
           args="-j$(nproc --all) O=$(pwd)/${{ env.OUT_DIR }}"
-          # Esencial para que las herramientas anfitrión compilen en el runner
           args="$args HOSTCC=gcc HOSTLD=ld"
           
           while read -r entry; do
