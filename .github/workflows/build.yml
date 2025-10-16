@@ -53,12 +53,12 @@ jobs:
           mkdir -p ${{ env.kernelDir }}
           git clone --depth=1 --branch ${{ env.kernelBranch }} ${{ env.kernelRepo }} ${{ env.kernelDir }}/${{ env.kernelName }}
 
-      - name: "🔧 Download Toolchain"
+      # --- CAMINO ALTERNATIVO: Usar Proton Clang ---
+      - name: "🔧 Download Toolchain (Proton Clang)"
         uses: actions/checkout@v4
         with:
-          repository: 'arter97/android-kernel-clang'
+          repository: 'kdrag0n/proton-clang'
           path: '${{ env.kernelDir }}/clang'
-          # --- CORRECCIÓN: Especificar la rama explícitamente ---
           ref: 'master'
           fetch-depth: 1
           
