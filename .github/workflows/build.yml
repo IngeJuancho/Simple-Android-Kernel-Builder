@@ -54,9 +54,9 @@ jobs:
           cd ${{ env.kernelDir }}
           echo "Cloning kernel from: ${{ env.kernelRepo }} (Branch: ${{ env.kernelBranch }})"
           git clone --depth=1 --branch ${{ env.kernelBranch }} ${{ env.kernelRepo }} ${{ env.kernelName }}
-          # --- CORRECCIÓN: Nuevo enlace para AOSP Clang ---
-          echo "Downloading AOSP Clang..."
-          git clone https://gitlab.com/zycromerz/aosp-clang.git --depth=1 clang
+          # --- CORRECCIÓN FINAL: Usar una toolchain confiable de GitHub ---
+          echo "Downloading Arter97's AOSP Clang..."
+          git clone https://github.com/arter97/android-kernel-clang.git --depth=1 clang
           
       - name: "😎 Set build environment and arguments"
         id: generate-args
