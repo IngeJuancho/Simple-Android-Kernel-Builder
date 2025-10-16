@@ -49,7 +49,7 @@ jobs:
       - name: "⭐ Install prerequisites"
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential bc curl git zip ftp gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi libssl-dev lftp zstd wget libfl-dev python3 libarchive-tools libncurses-dev flex bison
+          sudo apt-get install -y build-essential bc curl git zip ftp gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi libssl-dev lftp zstd wget libfl-dev python3 libarchive-tools libncurses-dev flex bison lld
 
       - name: "🌟 Clone kernel source"
         working-directory: ./${{ env.kernelDir }}
@@ -61,32 +61,34 @@ jobs:
           echo "Kernel commit:"
           git log --oneline -1
 
-      - name: "💫 Download and configure toolchains"
-        working-directory: ./${{ env.kernelDir }}
-        env:
-          toolchains: "${{ toJSON(matrix.repos.toolchains) }}"
-        run: |
-          toolchains_num="$(echo $toolchains | jq 'length')"
-          echo "Downloading $toolchains_num toolchains..."
-          for ((i=0;i<toolchains_num;i++)); do
-            name=$(echo $toolchains | jq -r ".[$i].name")
-            repo=$(echo $toolchains | jq -r ".[$i].repo")
-            branch=$(echo $toolchains | jq -r ".[$i].branch")
-            echo "  - $name from $repo (branch: $branch)"
-            git clone --recursive --branch $branch $repo $name --depth=1
-          done
-
-      - name: "🔧 Setup Toolchain Paths"
+      - name: "💫 Download Proton Clang"
         working-directory: ./${{ env.kernelDir }}
         run: |
-          # Configurar rutas absolutas para Clang y GCC
+          echo "Downloading Proton Clang..."
+          git clone --depth=1 https://github.com/kdrag0n/proton-clang clang
           export CLANG_PATH=$(pwd)/clang/bin
-          export GCC_PATH=$(pwd)/gcc-aarch64/bin
-          export PATH=$CLANG_PATH:$GCC_PATH:$PATH
-          
           echo "CLANG_PATH=$CLANG_PATH" >> $GITHUB_ENV
-          echo "GCC_PATH=$GCC_PATH" >> $GITHUB_ENV
-          echo "Toolchain paths configured"
+          echo "PATH=$CLANG_PATH:$PATH" >> $GITHUB_ENV
+
+      - name: "🔧 Verify LLVM Tools"
+        working-directory: ./${{ env.kernelDir }}
+        run: |
+          echo "=== Verificación completa de herramientas ==="
+          export CLANG_PATH=$(pwd)/clang/bin
+          export PATH=$CLANG_PATH:$PATH
+          
+          echo "Clang: $(which clang)"
+          clang --version | head -1
+          
+          echo "LD: $(which ld.lld)" 
+          ld.lld --version 2>/dev/null | head -1 || echo "⚠️  ld.lld no funciona"
+          
+          echo "AR: $(which llvm-ar)"
+          llvm-ar --version | head -1
+          echo "NM: $(which llvm-nm)"
+          echo "OBJCOPY: $(which llvm-objcopy)"
+          echo "OBJDUMP: $(which llvm-objdump)"
+          echo "STRIP: $(which llvm-strip)"
 
       - name: "😎 Generate build arguments"
         id: generate-args
@@ -95,13 +97,14 @@ jobs:
           params: "${{ toJSON(matrix.repos.params) }}"
         run: |
           ARCH=$(echo $params | jq -r ".ARCH")
-          CLANG_TRIPLE=$(echo $params | jq -r ".CLANG_TRIPLE")
-          AR=$(echo $params | jq -r ".AR")
           CC=$(echo $params | jq -r ".CC")
+          LD=$(echo $params | jq -r ".LD")
+          AR=$(echo $params | jq -r ".AR")
           NM=$(echo $params | jq -r ".NM")
           OBJCOPY=$(echo $params | jq -r ".OBJCOPY")
           OBJDUMP=$(echo $params | jq -r ".OBJDUMP")
           STRIP=$(echo $params | jq -r ".STRIP")
+          LLVM=$(echo $params | jq -r ".LLVM")
 
           echo "ARCH=$ARCH" >> $GITHUB_ENV
 
@@ -113,13 +116,15 @@ jobs:
             args="$args O=$(pwd)/${{ env.OUT_DIR }}"
           fi
           
-          # Solo parámetros esenciales para Clang/LLVM
+          # Parámetros esenciales para Clang/LLVM
           args="$args ARCH=$ARCH"
           args="$args CC=$CC"
-          args="$args CLANG_TRIPLE=$CLANG_TRIPLE"
-          args="$args LLVM=1"  # Forzar toolchain LLVM
+          args="$args LLVM=$LLVM"
           
           # Herramientas LLVM
+          if [ -n "$LD" ]; then
+            args="$args LD=$LD"
+          fi
           if [ -n "$AR" ]; then
             args="$args AR=$AR"
           fi
@@ -195,6 +200,8 @@ jobs:
           echo "Using toolchain:"
           which clang
           clang --version
+          which ld.lld
+          ld.lld --version || echo "ld.lld version check failed"
           make ${{ env.args }}
           echo "Kernel compilation completed"
 
