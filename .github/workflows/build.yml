@@ -141,16 +141,11 @@ jobs:
           sed -i 's/CONFIG_SCHED_DEBUG=y/# CONFIG_SCHED_DEBUG is not set/g' arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
           
           # --- Parches de Código Fuente (aplicados a los archivos .c) ---
-          # Arreglar errores en el planificador (scheduler)
           find kernel/sched -name "*.c" -exec sed -i 's/.*FULL_THROTTLE_BOOST.*/\/\/ &/g' {} \; || true
           find kernel/sched -name "*.c" -exec sed -i '/trace_sched_load_balance_skip_tasks/,/);/s/^/\/\/ /' {} \; || true
           find kernel/sched -name "*.c" -exec sed -i 's/mark_reserved(this_cpu);/\/\/ mark_reserved(this_cpu);/g' {} \; || true
           find kernel/sched -name "rt.c" -exec sed -i 's/.*boost_on_big.*/\/\/ &/g' {} \; || true
-          
-          # Arreglar error final en alarmtimer.c comentando la línea que usa la variable
           sed -i 's/alarm_fired = true;/\/\/ alarm_fired = true;/g' kernel/time/alarmtimer.c
-          
-          # Arreglar driver de infrarrojos si existe
           if [ -f "drivers/media/rc/msm-geni-ir.c" ]; then
             sed -i '1i#include <linux/irq.h>' drivers/media/rc/msm-geni-ir.c || true
           fi
