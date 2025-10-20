@@ -100,6 +100,8 @@ jobs:
           fi
           # Clonar AnyKernel3
           git clone --depth 1 https://github.com/osm0sis/AnyKernel3.git
+          # Descargar el anykernel.sh específico para Vayu y reemplazar el original
+          curl -sL "https://raw.githubusercontent.com/AnymoreProject/Anykernel_vayu/vayu/anykernel.sh" -o AnyKernel3/anykernel.sh
           # Copiar los artefactos del kernel al directorio de AnyKernel3
           cp out/arch/${{ matrix.params.ARCH }}/boot/Image AnyKernel3/
           cp out/arch/${{ matrix.params.ARCH }}/boot/dtb.img AnyKernel3/ 2>/dev/null || true
