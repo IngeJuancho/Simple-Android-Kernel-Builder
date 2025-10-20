@@ -91,20 +91,25 @@ jobs:
         run: |
           make O=../out -j$(nproc --all) ${{ steps.build_args.outputs.args }}
 
-      - name: Empaquetar con AnyKernel3 para Vayu
+      - name: Clonar AnyKernel3 para Vayu
+        uses: actions/checkout@v4
+        with:
+          repository: AnymoreProject/Anykernel_vayu
+          ref: vayu
+          path: AnyKernel3
+
+      - name: Empaquetar y Crear Zip
         run: |
           # Verificar si la compilación del kernel fue exitosa
           if ! [ -f "out/arch/${{ matrix.params.ARCH }}/boot/Image" ]; then
             echo "Error: La compilación falló, no se encontró el archivo Image."
             exit 1
           fi
-          # Clonar el repositorio AnyKernel específico para Vayu de forma no interactiva
-          GIT_TERMINAL_PROMPT=0 git clone --depth 1 https://github.com/AnymoreProject/Anykernel_vayu.git -b vayu AnyKernel3
           # Copiar los artefactos del kernel al directorio de AnyKernel3
           cp out/arch/${{ matrix.params.ARCH }}/boot/Image AnyKernel3/
           cp out/arch/${{ matrix.params.ARCH }}/boot/dtb.img AnyKernel3/ 2>/dev/null || true
           cp out/arch/${{ matrix.params.ARCH }}/boot/dtbo.img AnyKernel3/ 2>/dev/null || true
-          # Crear el archivo zip flasheable, excluyendo los directorios de git
+          # Crear el archivo zip flasheable
           cd AnyKernel3
           zip -r9 "../${{ matrix.kernelSource.name }}.zip" . -x ".git/*" -x ".github/*"
           cd ..
