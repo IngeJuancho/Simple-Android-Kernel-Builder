@@ -1,16 +1,43 @@
 [
   {
     "kernelSource": {
-      "name": "Tejas-Kernel-Vayu-Sixteen",
-      "repo": "https://github.com/tejas101k/kernel_xiaomi_vayu",
-      "branch": "sixteen",
+      "name": "AnymoreProject-Kernel-Vayu",
+      "repo": "https://github.com/AnymoreProject/android_kernel_vayu",
+      "branch": "16-ksu",
       "device": "vayu",
-      "defconfig": "arch/arm64/configs/vayu_user_defconfig"
+      "defconfig": "vayu_defconfig"
     },
     "withKernelSU": true,
+    "toolchains": [
+      {
+        "repo": "https://gitlab.com/crdroidandroid/android_prebuilts_clang_host_linux-x86_clang-r547379.git",
+        "branch": "15.0",
+        "name": "clang"
+      }
+    ],
     "params": {
       "ARCH": "arm64",
-      "LLVM": "1"
+      "SUBARCH": "arm64",
+      "DTC_EXT": "dtc",
+      "LLVM": "1",
+      "LLVM_IAS": "1",
+      "CLANG_TRIPLE": "aarch64-linux-gnu-",
+      "CROSS_COMPILE": "aarch64-linux-gnu-",
+      "CROSS_COMPILE_ARM32": "arm-linux-gnueabi-",
+      "CROSS_COMPILE_COMPAT": "arm-linux-gnueabi-",
+      "LD": "ld.lld",
+      "AR": "llvm-ar",
+      "NM": "llvm-nm",
+      "STRIP": "llvm-strip",
+      "OBJCOPY": "llvm-objcopy",
+      "OBJDUMP": "llvm-objdump",
+      "READELF": "llvm-readelf",
+      "HOSTCC": "clang",
+      "HOSTCXX": "clang++",
+      "HOSTAR": "llvm-ar",
+      "HOSTLD": "ld.lld",
+      "CC": "ccache clang"
     }
   }
 ]
+
