@@ -58,6 +58,12 @@ jobs:
       - name: Clonar fuente del Kernel
         run: git clone --depth=1 -b ${{ matrix.kernelSource.branch }} ${{ matrix.kernelSource.repo }} kernel_source
 
+      - name: Integrar KernelSU (Si es necesario)
+        if: matrix.withKernelSU == true
+        working-directory: ./kernel_source
+        run: |
+          curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -
+
       - name: Construir argumentos de compilación
         id: build_args
         run: |
@@ -103,3 +109,4 @@ jobs:
         with:
           name: ${{ matrix.kernelSource.name }}
           path: ${{ matrix.kernelSource.name }}.zip
+
