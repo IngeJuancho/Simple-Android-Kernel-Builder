@@ -91,17 +91,15 @@ jobs:
         run: |
           make O=../out -j$(nproc --all) ${{ steps.build_args.outputs.args }}
 
-      - name: Empaquetar con AnyKernel3
+      - name: Empaquetar con AnyKernel3 para Vayu
         run: |
           # Verificar si la compilación del kernel fue exitosa
           if ! [ -f "out/arch/${{ matrix.params.ARCH }}/boot/Image" ]; then
             echo "Error: La compilación falló, no se encontró el archivo Image."
             exit 1
           fi
-          # Clonar AnyKernel3
-          git clone --depth 1 https://github.com/osm0sis/AnyKernel3.git
-          # Descargar el anykernel.sh específico para Vayu y reemplazar el original
-          curl -sL "https://raw.githubusercontent.com/AnymoreProject/Anykernel_vayu/vayu/anykernel.sh" -o AnyKernel3/anykernel.sh
+          # Clonar el repositorio AnyKernel específico para Vayu
+          git clone --depth 1 https://github.com/AnymoreProject/Anykernel_vayu.git -b vayu AnyKernel3
           # Copiar los artefactos del kernel al directorio de AnyKernel3
           cp out/arch/${{ matrix.params.ARCH }}/boot/Image AnyKernel3/
           cp out/arch/${{ matrix.params.ARCH }}/boot/dtb.img AnyKernel3/ 2>/dev/null || true
