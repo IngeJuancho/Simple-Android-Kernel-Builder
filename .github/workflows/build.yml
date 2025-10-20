@@ -55,14 +55,14 @@ jobs:
           ccache -M 50G
           ccache -z
           
-      - name: Clonar fuente del Kernel
-        run: git clone --depth=1 -b ${{ matrix.kernelSource.branch }} ${{ matrix.kernelSource.repo }} kernel_source
-
-      - name: Integrar KernelSU (Si es necesario)
-        if: matrix.withKernelSU == true
-        working-directory: ./kernel_source
+      - name: Clonar fuente del Kernel y submódulos
         run: |
-          curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -
+          git clone --depth=1 -b ${{ matrix.kernelSource.branch }} ${{ matrix.kernelSource.repo }} kernel_source
+          cd kernel_source
+          if [ "${{ matrix.withKernelSU }}" = "true" ]; then
+            git submodule init
+            git submodule update
+          fi
 
       - name: Construir argumentos de compilación
         id: build_args
