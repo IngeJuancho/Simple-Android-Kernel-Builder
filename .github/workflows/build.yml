@@ -34,7 +34,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             build-essential libncurses-dev bison flex libssl-dev libelf-dev bc ccache \
-            jq git zip
+            jq git zip device-tree-compiler
 
       - name: Crear directorios de trabajo
         run: mkdir -p toolchains
@@ -58,14 +58,6 @@ jobs:
       - name: Clonar fuente del Kernel
         run: git clone --depth=1 -b ${{ matrix.kernelSource.branch }} ${{ matrix.kernelSource.repo }} kernel_source
 
-      - name: Integrar KernelSU (Opcional)
-        if: matrix.withKernelSU == true
-        working-directory: ./kernel_source
-        run: |
-          echo "Integrando KernelSU..."
-          curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -
-          echo "KERNELSU_INTEGRATED=true" >> $GITHUB_ENV
-
       - name: Construir argumentos de compilación
         id: build_args
         run: |
@@ -79,8 +71,8 @@ jobs:
           # Primero, genera el defconfig base
           make O=../out ${{ steps.build_args.outputs.args }} ${{ matrix.kernelSource.defconfig }}
           
-          # Si se integró KernelSU, habilítalo directamente y actualiza la config
-          if [ "${{ env.KERNELSU_INTEGRATED }}" = "true" ]; then
+          # Si se especifica KernelSU, habilítalo en la config y actualiza
+          if [ "${{ matrix.withKernelSU }}" = "true" ]; then
             echo "CONFIG_KSU=y" >> ../out/.config
             make O=../out ${{ steps.build_args.outputs.args }} olddefconfig
           fi
