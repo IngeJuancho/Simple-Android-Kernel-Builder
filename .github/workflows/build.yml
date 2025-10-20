@@ -98,8 +98,8 @@ jobs:
             echo "Error: La compilación falló, no se encontró el archivo Image."
             exit 1
           fi
-          # Clonar el repositorio AnyKernel específico para Vayu
-          git clone --depth 1 https://github.com/AnymoreProject/Anykernel_vayu.git -b vayu AnyKernel3
+          # Clonar el repositorio AnyKernel específico para Vayu de forma no interactiva
+          GIT_TERMINAL_PROMPT=0 git clone --depth 1 https://github.com/AnymoreProject/Anykernel_vayu.git -b vayu AnyKernel3
           # Copiar los artefactos del kernel al directorio de AnyKernel3
           cp out/arch/${{ matrix.params.ARCH }}/boot/Image AnyKernel3/
           cp out/arch/${{ matrix.params.ARCH }}/boot/dtb.img AnyKernel3/ 2>/dev/null || true
@@ -114,4 +114,5 @@ jobs:
         with:
           name: ${{ matrix.kernelSource.name }}
           path: ${{ matrix.kernelSource.name }}.zip
+
 
