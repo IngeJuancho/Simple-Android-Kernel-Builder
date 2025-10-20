@@ -2,7 +2,7 @@
 name: Compilar Kernel (Vayu)
 
 on:
-  workflow_dispatch: # Permite iniciar la compilación manually
+  workflow_dispatch: # Permite iniciar la compilación manualmente
 
 jobs:
   # TRABAJO 1: Generar la matriz de compilación desde repos.json
@@ -76,9 +76,13 @@ jobs:
       - name: Generar defconfig
         working-directory: ./kernel_source
         run: |
+          # Primero, genera el defconfig base
           make O=../out ${{ steps.build_args.outputs.args }} ${{ matrix.kernelSource.defconfig }}
+          
+          # Si se integró KernelSU, habilítalo directamente y actualiza la config
           if [ "${{ env.KERNELSU_INTEGRATED }}" = "true" ]; then
-            make O=../out ${{ steps.build_args.outputs.args }} menuconfig-ksu
+            echo "CONFIG_KSU=y" >> ../out/.config
+            make O=../out ${{ steps.build_args.outputs.args }} olddefconfig
           fi
 
       - name: Compilar Kernel
