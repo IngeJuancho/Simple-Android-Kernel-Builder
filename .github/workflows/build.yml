@@ -93,15 +93,20 @@ jobs:
 
       - name: Empaquetar con AnyKernel3
         run: |
+          # Verificar si la compilación del kernel fue exitosa
           if ! [ -f "out/arch/${{ matrix.params.ARCH }}/boot/Image" ]; then
             echo "Error: La compilación falló, no se encontró el archivo Image."
             exit 1
           fi
+          # Clonar AnyKernel3
           git clone --depth 1 https://github.com/osm0sis/AnyKernel3.git
+          # Copiar los artefactos del kernel al directorio de AnyKernel3
           cp out/arch/${{ matrix.params.ARCH }}/boot/Image AnyKernel3/
+          cp out/arch/${{ matrix.params.ARCH }}/boot/dtb.img AnyKernel3/ 2>/dev/null || true
           cp out/arch/${{ matrix.params.ARCH }}/boot/dtbo.img AnyKernel3/ 2>/dev/null || true
+          # Crear el archivo zip flasheable, excluyendo los directorios de git
           cd AnyKernel3
-          zip -r9 "../${{ matrix.kernelSource.name }}.zip" .
+          zip -r9 "../${{ matrix.kernelSource.name }}.zip" . -x ".git/*" -x ".github/*"
           cd ..
 
       - name: Subir artefacto (Zip Flasheable)
